@@ -1,0 +1,79 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install dependencies
+      run: npm install
+      env:
+        ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+        
+    - name: Download Electron
+      run: |
+        mkdir -p node_modules/electron/dist
+        Invoke-WebRequest -Uri "https://npmmirror.com/mirrors/electron/28.3.3/electron-v28.3.3-win32-x64.zip" -OutFile "electron.zip"
+        Expand-Archive -Force electron.zip "node_modules/electron/dist"
+        Remove-Item electron.zip
+        
+    - name: Create Electron package.json
+      run: |
+        $packageJson = @'
+        {
+          "name": "electron",
+          "version": "28.3.3"
+        }
+        '@
+        $packageJson | Out-File -FilePath "node_modules/electron/package.json" -Encoding UTF8
+        
+    - name: Build application
+      run: npm run build
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenClaw-Deployer
+        path: release/*.exe
+        
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: release/*.exe
+        body: |
+          ## OpenClaw 部署助手 ${{ github.ref_name }}
+
+          ### 核心功能
+          - ✅ 自动请求管理员权限
+          - ✅ 一键安装 OpenClaw（带进度条）
+          - ✅ 一键修复认证（自动生成 token）
+          - ✅ 国内镜像加速
+          - ✅ 实时日志系统
+
+          ### 安装说明
+          1. 下载 `OpenClaw 部署助手 *.exe`
+          2. 双击运行（自动请求管理员权限）
+          3. 点击"一键安装"即可
+
+          ### 使用指南
+          - 首次启动会自动检测环境
+          - 点击"一键安装"自动完成所有步骤
+          - 安装完成后点击"启动服务"
+          - 如显示离线，点击"修复认证"按钮
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
