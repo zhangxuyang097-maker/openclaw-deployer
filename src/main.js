@@ -466,7 +466,11 @@ async function downloadOpenClawInternal(event) {
       }
     }
     if (fs.existsSync(tempZip)) {
-      fs.unlinkSync(tempZip);
+      try {
+        fs.unlinkSync(tempZip);
+      } catch (e) {
+        await execPromise(`powershell -Command "Remove-Item -Path '${tempZip}' -Force -ErrorAction SilentlyContinue"`);
+      }
     }
     
     // 下载 zip 文件
@@ -1037,8 +1041,13 @@ async function downloadFile(url, destPath, event) {
     try {
       fs.unlinkSync(destPath);
     } catch (e) {
-      // 文件被占用，尝试使用新文件名
-      destPath = destPath + '_' + Date.now() + '.zip';
+      // 文件被占用，使用 PowerShell 删除
+      try {
+        await execPromise(`powershell -Command "Remove-Item -Path '${destPath}' -Force -ErrorAction SilentlyContinue"`);
+      } catch (psErr) {
+        // PowerShell 也失败，使用新文件名
+        destPath = destPath.replace('.zip', '_' + Date.now() + '.zip');
+      }
     }
   }
   
