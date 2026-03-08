@@ -9,12 +9,12 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build": "electron-builder --win --x64",
-    "postinstall": "electron-builder install-app-deps"
+    "build": "set ELECTRON_SKIP_BINARY_DOWNLOAD=true && electron-builder --win --x64",
+    "postinstall": "echo Skipping electron-builder install"
   },
   "devDependencies": {
     "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^26.8.1"
   },
   "dependencies": {
     "node-fetch": "^2.7.0",
@@ -43,30 +43,22 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "assets/icon.ico"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico",
-      "installerHeaderIcon": "assets/icon.ico",
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "OpenClaw 部署助手"
+      "allowToChangeInstallationDirectory": true
     },
     "electronDist": "node_modules/electron/dist",
     "nodeGypRebuild": false,
     "buildDependenciesFromSource": false,
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
     },
     "asar": true,
     "compression": "store"
