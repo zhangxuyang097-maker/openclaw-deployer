@@ -979,7 +979,12 @@ async function downloadFile(url, destPath, event) {
     const file = fs.createWriteStream(destPath);
     const protocol = url.startsWith('https') ? https : http;
     
-    const request = protocol.get(url, (response) => {
+    const options = {};
+    if (url.startsWith('https')) {
+      options.rejectUnauthorized = false;
+    }
+    
+    const request = protocol.get(url, options, (response) => {
       if (response.statusCode === 302 || response.statusCode === 301) {
         file.close();
         fs.unlinkSync(destPath);
