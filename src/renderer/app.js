@@ -83,6 +83,8 @@ function cacheElements() {
   elements.progressText = document.getElementById('progress-text');
   elements.progressStep = document.getElementById('progress-step');
   elements.progressSpinner = document.getElementById('progress-spinner');
+  elements.progressPercent = document.getElementById('progress-percent');
+  elements.progressDetail = document.getElementById('progress-detail');
   
   // 配置表单
   elements.configForm = document.getElementById('config-form');
@@ -724,13 +726,17 @@ async function completeInstall() {
   await refreshAllStatus();
 }
 
-function updateProgress(progress, text, step) {
+function updateProgress(progress, text, step, detail) {
   elements.progressFill.style.width = `${progress}%`;
+  elements.progressPercent.textContent = `${progress}%`;
   if (text) {
     elements.progressText.textContent = text;
   }
   if (step && elements.progressStep) {
     elements.progressStep.textContent = step;
+  }
+  if (detail && elements.progressDetail) {
+    elements.progressDetail.textContent = detail;
   }
 }
 

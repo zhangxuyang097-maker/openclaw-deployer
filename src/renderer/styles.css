@@ -572,11 +572,17 @@ body {
   font-size: 14px;
 }
 
-.progress-step {
+.progress-percent {
   color: var(--primary-color);
-  font-size: 13px;
-  margin-top: var(--spacing-sm);
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+}
+
+.progress-detail {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  margin-top: var(--spacing-xs);
 }
 
 .progress-spinner {
