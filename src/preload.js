@@ -210,6 +210,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
 
   /**
+   * 获取安装路径配置
+   * @returns {Promise<Object>} { openclawPath: string, clawxPath: string }
+   */
+  getInstallPaths: () => ipcRenderer.invoke('get-install-paths'),
+
+  /**
+   * 保存安装路径配置
+   * @param {Object} paths - { openclawPath?: string, clawxPath?: string }
+   * @returns {Promise<Object>} { success: boolean, error?: string }
+   */
+  saveInstallPaths: (paths) => ipcRenderer.invoke('save-install-paths', paths),
+
+  /**
    * 显示消息对话框
    * @param {Object} options - 对话框选项
    * @returns {Promise<Object>} 用户选择结果

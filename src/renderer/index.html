@@ -269,9 +269,9 @@
               <div class="card-body">
                 <div class="preset-list">
                   <button class="preset-btn" data-preset="openai">
-                    <span class="preset-icon">🅾️</span>
-                    <span class="preset-name">OpenAI</span>
-                  </button>
+                      <span class="preset-icon">🅾️</span>
+                      <span class="preset-name">OpenAI</span>
+                    </button>
                   <button class="preset-btn" data-preset="azure">
                     <span class="preset-icon">☁️</span>
                     <span class="preset-name">Azure OpenAI</span>
@@ -285,6 +285,38 @@
                     <span class="preset-name">自定义</span>
                   </button>
                 </div>
+              </div>
+            </div>
+
+            <!-- 安装目录设置 -->
+            <div class="card config-card" style="margin-top: 20px;">
+              <div class="card-header">
+                <h3>📁 安装目录设置</h3>
+              </div>
+              <div class="card-body">
+                <form id="path-form">
+                  <div class="form-group">
+                    <label for="openclaw-path">OpenClaw 安装目录</label>
+                    <div class="input-group">
+                      <input type="text" id="openclaw-path" name="openclawPath" placeholder="默认: 用户目录/openclaw-main">
+                      <button type="button" class="btn btn-secondary" id="select-openclaw-path-btn">浏览</button>
+                    </div>
+                    <span class="form-hint">OpenClaw 源码安装位置</span>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="clawx-path">ClawX 安装目录</label>
+                    <div class="input-group">
+                      <input type="text" id="clawx-path" name="clawxPath" placeholder="默认: 用户目录/ClawX">
+                      <button type="button" class="btn btn-secondary" id="select-clawx-path-btn">浏览</button>
+                    </div>
+                    <span class="form-hint">ClawX 源码安装位置</span>
+                  </div>
+                </form>
+              </div>
+              <div class="card-footer">
+                <button class="btn btn-secondary" id="reset-path-btn">重置默认</button>
+                <button class="btn btn-primary" id="save-path-btn">保存设置</button>
               </div>
             </div>
           </div>

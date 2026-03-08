@@ -94,6 +94,14 @@ function cacheElements() {
   elements.resetConfigBtn = document.getElementById('reset-config-btn');
   elements.presetBtns = document.querySelectorAll('.preset-btn');
   
+  // 安装路径设置
+  elements.openclawPath = document.getElementById('openclaw-path');
+  elements.clawxPath = document.getElementById('clawx-path');
+  elements.selectOpenclawPathBtn = document.getElementById('select-openclaw-path-btn');
+  elements.selectClawXPathBtn = document.getElementById('select-clawx-path-btn');
+  elements.savePathBtn = document.getElementById('save-path-btn');
+  elements.resetPathBtn = document.getElementById('reset-path-btn');
+  
   // 服务管理
   elements.serviceIndicator = document.getElementById('service-indicator');
   elements.statusDot = document.querySelector('.status-dot');
@@ -163,6 +171,12 @@ function bindEvents() {
     btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
   });
   
+  // 安装路径设置
+  elements.selectOpenclawPathBtn.addEventListener('click', selectOpenclawPath);
+  elements.selectClawXPathBtn.addEventListener('click', selectClawXPath);
+  elements.savePathBtn.addEventListener('click', saveInstallPaths);
+  elements.resetPathBtn.addEventListener('click', resetInstallPaths);
+  
   // 服务管理
   elements.startServiceBtn.addEventListener('click', startService);
   elements.stopServiceBtn.addEventListener('click', stopService);
@@ -214,6 +228,9 @@ async function initialize() {
     
     // 加载配置
     await loadConfig();
+    
+    // 加载安装路径配置
+    await loadInstallPaths();
     
     // 检查服务状态
     await checkServiceStatus();
@@ -779,6 +796,77 @@ function resetConfig() {
   elements.temperature.value = 0.7;
   elements.temperatureValue.textContent = '0.7';
   showToast('配置已重置', 'info');
+}
+
+/**
+ * 选择 OpenClaw 安装目录
+ */
+async function selectOpenclawPath() {
+  const result = await window.electronAPI.selectDirectory();
+  if (!result.canceled && result.path) {
+    elements.openclawPath.value = result.path;
+  }
+}
+
+/**
+ * 选择 ClawX 安装目录
+ */
+async function selectClawXPath() {
+  const result = await window.electronAPI.selectDirectory();
+  if (!result.canceled && result.path) {
+    elements.clawxPath.value = result.path;
+  }
+}
+
+/**
+ * 保存安装路径配置
+ */
+async function saveInstallPaths() {
+  const paths = {
+    openclawPath: elements.openclawPath.value,
+    clawxPath: elements.clawxPath.value
+  };
+  
+  try {
+    const result = await window.electronAPI.saveInstallPaths(paths);
+    if (result.success) {
+      showToast('安装路径已保存', 'success');
+      await refreshAllStatus();
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    showToast('保存失败: ' + error.message, 'error');
+  }
+}
+
+/**
+ * 重置安装路径
+ */
+async function resetInstallPaths() {
+  elements.openclawPath.value = '';
+  elements.clawxPath.value = '';
+  
+  const result = await window.electronAPI.saveInstallPaths({});
+  if (result.success) {
+    showToast('已重置为默认路径', 'success');
+    await refreshAllStatus();
+  }
+}
+
+/**
+ * 加载安装路径配置
+ */
+async function loadInstallPaths() {
+  try {
+    const result = await window.electronAPI.getInstallPaths();
+    if (result) {
+      elements.openclawPath.value = result.openclawPath || '';
+      elements.clawxPath.value = result.clawxPath || '';
+    }
+  } catch (error) {
+    console.error('加载安装路径失败:', error);
+  }
 }
 
 /**

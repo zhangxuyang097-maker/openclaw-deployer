@@ -638,6 +638,20 @@ body {
   margin-top: var(--spacing-xs);
 }
 
+.input-group {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.input-group input {
+  flex: 1;
+}
+
+.input-group .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 /* 预设按钮 */
 .preset-list {
   display: flex;

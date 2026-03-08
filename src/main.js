@@ -40,8 +40,39 @@ const MIRRORS = {
 // OpenClaw 默认端口
 const OPENCLAW_PORT = 18789;
 
+// 配置文件路径
+const CONFIG_FILE = path.join(os.homedir(), '.openclaw-deployer.json');
+
+// 读取配置
+function loadConfig() {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      return config;
+    }
+  } catch (e) {
+    // 忽略错误
+  }
+  return {};
+}
+
+// 保存配置
+function saveConfig(config) {
+  try {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 // 获取 OpenClaw 安装路径
 function getOpenClawPath() {
+  const config = loadConfig();
+  if (config.openclawPath && fs.existsSync(config.openclawPath)) {
+    return config.openclawPath;
+  }
+  
   const primaryPath = path.join(os.homedir(), 'openclaw-main');
   const altPath = path.join(os.homedir(), '.openclaw');
   
@@ -50,11 +81,16 @@ function getOpenClawPath() {
   } else if (fs.existsSync(altPath)) {
     return altPath;
   }
-  return primaryPath;
+  return config.openclawPath || primaryPath;
 }
 
 // 获取 ClawX 安装路径
 function getClawXPath() {
+  const config = loadConfig();
+  if (config.clawxPath && fs.existsSync(config.clawxPath)) {
+    return config.clawxPath;
+  }
+  
   const primaryPath = path.join(os.homedir(), 'ClawX-main');
   const altPath = path.join(os.homedir(), 'ClawX');
   
@@ -63,7 +99,7 @@ function getClawXPath() {
   } else if (fs.existsSync(altPath)) {
     return altPath;
   }
-  return primaryPath;
+  return config.clawxPath || altPath;
 }
 
 /**
@@ -700,9 +736,8 @@ ipcMain.handle('download-clawx', async (event) => {
     
     // 使用 git clone 下载
     const cloneUrl = 'https://github.com/ValueCell-ai/ClawX.git';
-    const targetPath = path.join(os.homedir(), 'ClawX');
     
-    const child = spawn('git', ['clone', cloneUrl, targetPath], {
+    const child = spawn('git', ['clone', cloneUrl, clawxPath], {
       shell: true,
       cwd: os.homedir()
     });
@@ -712,8 +747,8 @@ ipcMain.handle('download-clawx', async (event) => {
     if (result.success) {
       event.sender.send('command-output', { type: 'stdout', data: '[成功] ClawX 下载完成\n' });
       event.sender.send('command-output', { type: 'stdout', data: '[信息] 请按照 ClawX 文档进行安装配置\n' });
-      event.sender.send('command-output', { type: 'stdout', data: `[信息] ClawX 目录: ${targetPath}\n` });
-      return { success: true, path: targetPath };
+      event.sender.send('command-output', { type: 'stdout', data: `[信息] ClawX 目录: ${clawxPath}\n` });
+      return { success: true, path: clawxPath };
     } else {
       throw new Error(result.stderr || result.error || 'git clone 失败');
     }
@@ -874,6 +909,32 @@ ipcMain.handle('select-directory', async () => {
   }
   
   return { canceled: false, path: result.filePaths[0] };
+});
+
+// 获取安装路径配置
+ipcMain.handle('get-install-paths', async () => {
+  const config = loadConfig();
+  return {
+    openclawPath: config.openclawPath || '',
+    clawxPath: config.clawxPath || ''
+  };
+});
+
+// 保存安装路径配置
+ipcMain.handle('save-install-paths', async (event, paths) => {
+  try {
+    const config = loadConfig();
+    if (paths.openclawPath) {
+      config.openclawPath = paths.openclawPath;
+    }
+    if (paths.clawxPath) {
+      config.clawxPath = paths.clawxPath;
+    }
+    saveConfig(config);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });
 
 // 显示消息框
