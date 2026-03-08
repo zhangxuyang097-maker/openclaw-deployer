@@ -1,6 +1,7 @@
 /**
  * OpenClaw 部署助手 - 预加载脚本
  * 负责主进程与渲染进程之间的安全通信桥接
+ * Windows 专属版本
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
@@ -39,16 +40,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkGit: () => ipcRenderer.invoke('check-git'),
 
   /**
-   * 检测 Homebrew 安装状态 (macOS)
-   * @returns {Promise<Object>} { installed: boolean, path?: string, version?: string, notMac?: boolean }
-   */
-  checkHomebrew: () => ipcRenderer.invoke('check-homebrew'),
-
-  /**
    * 检测 OpenClaw 安装状态
    * @returns {Promise<Object>} { installed: boolean, path?: string, version?: string }
    */
   checkOpenClaw: () => ipcRenderer.invoke('check-openclaw'),
+
+  /**
+   * 检测 pnpm 安装状态
+   * @returns {Promise<Object>} { installed: boolean, version?: string }
+   */
+  checkPnpm: () => ipcRenderer.invoke('check-pnpm'),
 
   // ==================== 依赖安装 ====================
   
@@ -59,30 +60,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   installNodejsWindows: () => ipcRenderer.invoke('install-nodejs-windows'),
 
   /**
-   * macOS 安装 Node.js
-   * @param {boolean} useBrew - 是否使用 Homebrew
-   * @returns {Promise<Object>} 安装结果
-   */
-  installNodejsMac: (useBrew = true) => ipcRenderer.invoke('install-nodejs-mac', useBrew),
-
-  /**
    * Windows 安装 Git
    * @returns {Promise<Object>} 安装结果
    */
   installGitWindows: () => ipcRenderer.invoke('install-git-windows'),
 
   /**
-   * macOS 安装 Git
-   * @param {boolean} useBrew - 是否使用 Homebrew
+   * 安装 pnpm
    * @returns {Promise<Object>} 安装结果
    */
-  installGitMac: (useBrew = true) => ipcRenderer.invoke('install-git-mac', useBrew),
-
-  /**
-   * 安装 Homebrew (macOS)
-   * @returns {Promise<Object>} 安装结果
-   */
-  installHomebrew: () => ipcRenderer.invoke('install-homebrew'),
+  installPnpm: () => ipcRenderer.invoke('install-pnpm'),
 
   // ==================== OpenClaw 管理 ====================
   
@@ -133,18 +120,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
    * @returns {Promise<Object>} 卸载结果
    */
   uninstallOpenClaw: () => ipcRenderer.invoke('uninstall-openclaw'),
-
-  /**
-   * 检测 pnpm 安装状态
-   * @returns {Promise<Object>} { installed: boolean, version?: string }
-   */
-  checkPnpm: () => ipcRenderer.invoke('check-pnpm'),
-
-  /**
-   * 安装 pnpm
-   * @returns {Promise<Object>} 安装结果
-   */
-  installPnpm: () => ipcRenderer.invoke('install-pnpm'),
 
   // ==================== 配置管理 ====================
   
@@ -287,8 +262,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
  * 暴露平台信息给渲染进程
  */
 contextBridge.exposeInMainWorld('platform', {
-  isWindows: process.platform === 'win32',
-  isMac: process.platform === 'darwin',
-  isLinux: process.platform === 'linux',
+  isWindows: true,
   arch: process.arch
 });

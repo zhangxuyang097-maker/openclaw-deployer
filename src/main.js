@@ -2,6 +2,7 @@
  * OpenClaw 部署助手 - 主进程
  * 负责窗口管理、系统权限处理、与渲染进程通信
  * 内置 OpenClaw 完整安装和管理功能
+ * Windows 专属版本
  */
 
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
@@ -17,11 +18,6 @@ const { promisify } = require('util');
 const streamPipeline = promisify(pipeline);
 
 const execPromise = util.promisify(exec);
-
-// 平台检测
-const isWindows = process.platform === 'win32';
-const isMac = process.platform === 'darwin';
-const isLinux = process.platform === 'linux';
 
 // 全局窗口引用
 let mainWindow = null;
@@ -52,7 +48,7 @@ function getOpenClawPath() {
   } else if (fs.existsSync(altPath)) {
     return altPath;
   }
-  return primaryPath; // 返回默认路径用于安装
+  return primaryPath;
 }
 
 /**
@@ -104,9 +100,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   stopService();
-  if (!isMac) {
-    app.quit();
-  }
+  app.quit();
 });
 
 app.on('before-quit', () => {
@@ -122,9 +116,7 @@ ipcMain.handle('get-system-info', async () => {
   return {
     platform: process.platform,
     arch: process.arch,
-    isWindows,
-    isMac,
-    isLinux,
+    isWindows: true,
     hostname: os.hostname(),
     userInfo: os.userInfo(),
     homedir: os.homedir(),
@@ -152,7 +144,7 @@ ipcMain.handle('execute-command-stream', async (event, command, args = [], optio
     const spawnOptions = {
       cwd: options.cwd || os.homedir(),
       env: { ...process.env, ...options.env },
-      shell: isWindows
+      shell: true
     };
 
     const child = spawn(command, args, spawnOptions);
@@ -206,19 +198,10 @@ ipcMain.handle('execute-command-stream', async (event, command, args = [], optio
 // 检测管理员权限
 ipcMain.handle('check-admin', async () => {
   try {
-    if (isWindows) {
-      try {
-        await execPromise('net session');
-        return { isAdmin: true };
-      } catch {
-        return { isAdmin: false };
-      }
-    } else {
-      const { stdout } = await execPromise('id -u');
-      return { isAdmin: stdout.trim() === '0' };
-    }
-  } catch (error) {
-    return { isAdmin: false, error: error.message };
+    await execPromise('net session');
+    return { isAdmin: true };
+  } catch {
+    return { isAdmin: false };
   }
 });
 
@@ -260,27 +243,6 @@ ipcMain.handle('check-pnpm', async () => {
     return {
       installed: true,
       version: stdout.trim()
-    };
-  } catch {
-    return { installed: false };
-  }
-});
-
-// 检测 Homebrew (macOS)
-ipcMain.handle('check-homebrew', async () => {
-  if (!isMac) return { installed: false, notMac: true };
-  
-  try {
-    const { stdout } = await execPromise('which brew');
-    const brewPath = stdout.trim();
-    
-    const { stdout: versionOutput } = await execPromise('brew --version');
-    const match = versionOutput.match(/Homebrew (\d+\.\d+\.?\d*)/i);
-    
-    return {
-      installed: true,
-      path: brewPath,
-      version: match ? match[1] : 'unknown'
     };
   } catch {
     return { installed: false };
@@ -342,7 +304,6 @@ ipcMain.handle('install-pnpm', async (event) => {
     if (result.success) {
       event.sender.send('command-output', { type: 'stdout', data: '[成功] pnpm 安装完成\n' });
       
-      // 配置 pnpm 镜像
       try {
         execSync('pnpm config set registry ' + MIRRORS.npm, { shell: true });
         event.sender.send('command-output', { type: 'stdout', data: '[信息] pnpm 镜像已配置\n' });
@@ -373,21 +334,6 @@ ipcMain.handle('install-nodejs-windows', async (event) => {
   }
 });
 
-// 安装 Node.js (macOS)
-ipcMain.handle('install-nodejs-mac', async (event, useBrew = true) => {
-  try {
-    if (useBrew) {
-      const child = spawn('brew', ['install', 'node@22'], { shell: true });
-      return handleStreamOutput(child, event);
-    } else {
-      const child = spawn('bash', ['-c', 'curl -fsSL https://npmmirror.com/mirrors/node/v22.0.0/node-v22.0.0.pkg -o /tmp/node.pkg && sudo installer -pkg /tmp/node.pkg -target /'], { shell: true });
-      return handleStreamOutput(child, event);
-    }
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
 // 安装 Git (Windows)
 ipcMain.handle('install-git-windows', async (event) => {
   const installScript = path.join(__dirname, '../scripts/install-git-win.ps1');
@@ -398,32 +344,6 @@ ipcMain.handle('install-git-windows', async (event) => {
       '-File', installScript
     ], { shell: true });
 
-    return handleStreamOutput(child, event);
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-// 安装 Git (macOS)
-ipcMain.handle('install-git-mac', async (event, useBrew = true) => {
-  try {
-    if (useBrew) {
-      const child = spawn('brew', ['install', 'git'], { shell: true });
-      return handleStreamOutput(child, event);
-    } else {
-      const child = spawn('xcode-select', ['--install'], { shell: true });
-      return handleStreamOutput(child, event);
-    }
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-// 安装 Homebrew (macOS)
-ipcMain.handle('install-homebrew', async (event) => {
-  try {
-    const installCommand = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"';
-    const child = spawn('bash', ['-c', installCommand], { shell: true });
     return handleStreamOutput(child, event);
   } catch (error) {
     return { success: false, error: error.message };
@@ -458,12 +378,8 @@ ipcMain.handle('download-openclaw', async (event) => {
       fs.rmSync(extractPath, { recursive: true, force: true });
     }
     
-    // 使用系统解压命令
-    if (isWindows) {
-      await execPromise(`powershell -Command "Expand-Archive -Path '${tempZip}' -DestinationPath '${extractPath}' -Force"`);
-    } else {
-      await execPromise(`unzip -o "${tempZip}" -d "${extractPath}"`);
-    }
+    // 使用 PowerShell 解压
+    await execPromise(`powershell -Command "Expand-Archive -Path '${tempZip}' -DestinationPath '${extractPath}' -Force"`);
     
     // 重命名目录
     const extractedDir = path.join(extractPath, 'openclaw-main');
@@ -549,7 +465,6 @@ ipcMain.handle('build-openclaw', async (event) => {
     
     event.sender.send('command-output', { type: 'stdout', data: '[信息] 正在构建 OpenClaw...\n' });
     
-    // 直接运行构建脚本（跳过需要 bash 的步骤）
     const buildSteps = [
       { name: 'tsdown 构建', cmd: 'node', args: ['scripts/tsdown-build.mjs'] },
       { name: '复制 SDK 别名', cmd: 'node', args: ['scripts/copy-plugin-sdk-root-alias.mjs'] },
@@ -571,7 +486,6 @@ ipcMain.handle('build-openclaw', async (event) => {
         
         await handleStreamOutput(child, event);
       } catch (e) {
-        // 某些步骤可能失败，继续执行
         event.sender.send('command-output', { type: 'stderr', data: `[警告] ${step.name} 失败，继续...\n` });
       }
     }
@@ -602,7 +516,6 @@ ipcMain.handle('init-openclaw-config', async (event) => {
     
     event.sender.send('command-output', { type: 'stdout', data: '[信息] 正在初始化配置...\n' });
     
-    // 运行 onboard 命令
     const child = spawn('node', ['openclaw.mjs', 'onboard', '--non-interactive', '--accept-risk', '--mode', 'local'], {
       cwd: openclawPath,
       shell: true,
@@ -671,7 +584,7 @@ ipcMain.handle('install-openclaw-full', async (event) => {
   return { success: true, results };
 });
 
-// 安装 OpenClaw（旧版兼容）
+// 安装 OpenClaw
 ipcMain.handle('install-openclaw', async (event) => {
   return ipcMain.invoke('install-openclaw-full', event);
 });
@@ -687,7 +600,6 @@ ipcMain.handle('upgrade-openclaw', async (event) => {
 
     event.sender.send('command-output', { type: 'stdout', data: '[信息] 正在更新 OpenClaw...\n' });
     
-    // 拉取最新代码
     const pullChild = spawn('git', ['pull'], {
       cwd: openclawPath,
       shell: true
@@ -696,7 +608,6 @@ ipcMain.handle('upgrade-openclaw', async (event) => {
     const result = await handleStreamOutput(pullChild, event);
     
     if (result.success) {
-      // 更新依赖
       event.sender.send('command-output', { type: 'stdout', data: '[信息] 正在更新依赖...\n' });
       
       const pnpmChild = spawn('pnpm', ['install'], {
@@ -706,7 +617,6 @@ ipcMain.handle('upgrade-openclaw', async (event) => {
       
       await handleStreamOutput(pnpmChild, event);
       
-      // 重新构建
       event.sender.send('command-output', { type: 'stdout', data: '[信息] 正在重新构建...\n' });
       await ipcMain.invoke('build-openclaw', event);
     }
@@ -722,7 +632,6 @@ ipcMain.handle('uninstall-openclaw', async () => {
   const openclawPath = getOpenClawPath();
   
   try {
-    // 先停止服务
     await stopService();
     
     if (fs.existsSync(openclawPath)) {
@@ -761,7 +670,6 @@ ipcMain.handle('save-openclaw-config', async (event, config) => {
       return { success: false, error: 'OpenClaw 未安装' };
     }
     
-    // 读取现有配置并合并
     let existingConfig = {};
     if (fs.existsSync(configPath)) {
       try {
@@ -793,7 +701,6 @@ ipcMain.handle('start-service', async (event) => {
       return { success: false, error: 'OpenClaw 未安装' };
     }
 
-    // 检查是否已构建
     const distPath = path.join(openclawPath, 'dist');
     if (!fs.existsSync(distPath)) {
       return { success: false, error: 'OpenClaw 未构建，请先构建项目' };
@@ -801,7 +708,6 @@ ipcMain.handle('start-service', async (event) => {
 
     event.sender.send('command-output', { type: 'stdout', data: '[信息] 正在启动 OpenClaw 服务...\n' });
 
-    // 启动 Gateway 服务
     serviceProcess = spawn('node', ['openclaw.mjs', 'gateway', '--port', String(OPENCLAW_PORT), '--allow-unconfigured'], {
       cwd: openclawPath,
       shell: true,
@@ -829,7 +735,6 @@ ipcMain.handle('start-service', async (event) => {
       event.sender.send('service-status', { running: false, code });
     });
 
-    // 等待服务启动
     await new Promise(resolve => setTimeout(resolve, 5000));
     
     if (started) {
@@ -905,7 +810,6 @@ async function downloadFile(url, destPath, event) {
     
     const request = protocol.get(url, (response) => {
       if (response.statusCode === 302 || response.statusCode === 301) {
-        // 处理重定向
         file.close();
         fs.unlinkSync(destPath);
         downloadFile(response.headers.location, destPath, event).then(resolve).catch(reject);
@@ -1003,12 +907,7 @@ function stopService() {
     }
 
     try {
-      if (isWindows) {
-        spawn('taskkill', ['/pid', serviceProcess.pid, '/f', '/t'], { shell: true });
-      } else {
-        serviceProcess.kill('SIGTERM');
-      }
-      
+      spawn('taskkill', ['/pid', serviceProcess.pid, '/f', '/t'], { shell: true });
       serviceProcess = null;
       resolve({ success: true });
     } catch (error) {

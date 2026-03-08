@@ -1,7 +1,7 @@
 {
   "name": "openclaw-deployer",
   "version": "1.0.0",
-  "description": "OpenClaw 跨平台一键部署工具 - 面向纯小白用户的可视化部署软件",
+  "description": "OpenClaw Windows 一键部署工具 - 面向纯小白用户的可视化部署软件",
   "main": "src/main.js",
   "author": "OpenClaw Deployer Team",
   "license": "MIT",
@@ -9,10 +9,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:all": "electron-builder --win --mac",
+    "build": "electron-builder --win",
     "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
@@ -45,7 +42,11 @@
     "win": {
       "target": [
         {
-          "target": "dir",
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
           "arch": ["x64"]
         }
       ],
@@ -60,40 +61,6 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "OpenClaw 部署助手"
-    },
-    "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": ["x64", "arm64"]
-        },
-        {
-          "target": "zip",
-          "arch": ["x64", "arm64"]
-        }
-      ],
-      "icon": "assets/icon.icns",
-      "category": "public.app-category.developer-tools",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false
-    },
-    "dmg": {
-      "contents": [
-        {
-          "x": 130,
-          "y": 220
-        },
-        {
-          "x": 410,
-          "y": 220,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ],
-      "window": {
-        "width": 540,
-        "height": 380
-      }
     }
   }
 }

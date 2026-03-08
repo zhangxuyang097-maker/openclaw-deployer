@@ -1,6 +1,7 @@
 /**
  * OpenClaw 部署助手 - 前端应用逻辑
  * 负责 UI 交互、状态管理和与主进程通信
+ * Windows 专属版本
  */
 
 // ==================== 全局状态 ====================
@@ -10,7 +11,6 @@ const state = {
     admin: null,
     nodejs: null,
     git: null,
-    homebrew: null,
     openclaw: null
   },
   serviceRunning: false,
@@ -58,12 +58,6 @@ function cacheElements() {
   elements.gitDesc = document.getElementById('git-desc');
   elements.gitVersion = document.getElementById('git-version');
   elements.gitInstallBtn = document.getElementById('git-install-btn');
-  
-  elements.homebrewCard = document.getElementById('homebrew-card');
-  elements.homebrewStatus = document.getElementById('homebrew-status');
-  elements.homebrewDesc = document.getElementById('homebrew-desc');
-  elements.homebrewVersion = document.getElementById('homebrew-version');
-  elements.homebrewInstallBtn = document.getElementById('homebrew-install-btn');
   
   elements.openclawStatus = document.getElementById('openclaw-status');
   elements.openclawDesc = document.getElementById('openclaw-desc');
@@ -137,7 +131,6 @@ function bindEvents() {
   elements.adminFixBtn.addEventListener('click', fixAdmin);
   elements.nodejsInstallBtn.addEventListener('click', installNodejs);
   elements.gitInstallBtn.addEventListener('click', installGit);
-  elements.homebrewInstallBtn.addEventListener('click', installHomebrew);
   
   // OpenClaw 管理
   elements.openclawInstallBtn.addEventListener('click', installOpenClaw);
@@ -228,20 +221,13 @@ async function initialize() {
  * 更新平台标识
  */
 function updatePlatformBadge() {
-  const { isWindows, isMac, arch } = state.systemInfo;
-  let platformText = '';
+  const { arch } = state.systemInfo;
+  let platformText = 'Windows';
   
-  if (isWindows) {
-    platformText = 'Windows';
-  } else if (isMac) {
-    platformText = 'macOS';
-    if (arch === 'arm64') {
-      platformText += ' (Apple Silicon)';
-    } else {
-      platformText += ' (Intel)';
-    }
-  } else {
-    platformText = 'Linux';
+  if (arch === 'x64') {
+    platformText += ' (64位)';
+  } else if (arch === 'arm64') {
+    platformText += ' (ARM64)';
   }
   
   elements.platformBadge.textContent = platformText;
@@ -281,22 +267,18 @@ async function refreshAllStatus() {
   showLoading('正在检测环境...');
   
   try {
-    // 并行检测所有环境
-    const [admin, nodejs, git, homebrew, openclaw] = await Promise.all([
+    const [admin, nodejs, git, openclaw] = await Promise.all([
       window.electronAPI.checkAdmin(),
       window.electronAPI.checkNodejs(),
       window.electronAPI.checkGit(),
-      window.electronAPI.checkHomebrew(),
       window.electronAPI.checkOpenClaw()
     ]);
     
-    state.envStatus = { admin, nodejs, git, homebrew, openclaw };
+    state.envStatus = { admin, nodejs, git, openclaw };
     
-    // 更新 UI
     updateAdminUI(admin);
     updateNodejsUI(nodejs);
     updateGitUI(git);
-    updateHomebrewUI(homebrew);
     updateOpenClawUI(openclaw);
     
     hideLoading();
@@ -376,35 +358,6 @@ function updateGitUI(status) {
 }
 
 /**
- * 更新 Homebrew UI
- */
-function updateHomebrewUI(status) {
-  state.envStatus.homebrew = status;
-  
-  // 只在 macOS 显示 Homebrew 卡片
-  if (status.notMac) {
-    elements.homebrewCard.style.display = 'none';
-    return;
-  }
-  
-  elements.homebrewCard.style.display = 'block';
-  
-  if (status.installed) {
-    elements.homebrewStatus.textContent = '已安装';
-    elements.homebrewStatus.className = 'status-badge success';
-    elements.homebrewDesc.textContent = 'Homebrew 包管理器已就绪';
-    elements.homebrewVersion.textContent = `v${status.version}`;
-    elements.homebrewInstallBtn.disabled = true;
-  } else {
-    elements.homebrewStatus.textContent = '未安装';
-    elements.homebrewStatus.className = 'status-badge warning';
-    elements.homebrewDesc.textContent = '建议安装 Homebrew 便于管理软件包';
-    elements.homebrewVersion.textContent = '';
-    elements.homebrewInstallBtn.disabled = false;
-  }
-}
-
-/**
  * 更新 OpenClaw UI
  */
 function updateOpenClawUI(status) {
@@ -439,13 +392,7 @@ async function installNodejs() {
   addLog('开始安装 Node.js...', 'info');
   
   try {
-    let result;
-    if (state.systemInfo.isWindows) {
-      result = await window.electronAPI.installNodejsWindows();
-    } else {
-      const useBrew = state.envStatus.homebrew?.installed;
-      result = await window.electronAPI.installNodejsMac(useBrew);
-    }
+    const result = await window.electronAPI.installNodejsWindows();
     
     if (result.success) {
       showToast('Node.js 安装成功', 'success');
@@ -470,13 +417,7 @@ async function installGit() {
   addLog('开始安装 Git...', 'info');
   
   try {
-    let result;
-    if (state.systemInfo.isWindows) {
-      result = await window.electronAPI.installGitWindows();
-    } else {
-      const useBrew = state.envStatus.homebrew?.installed;
-      result = await window.electronAPI.installGitMac(useBrew);
-    }
+    const result = await window.electronAPI.installGitWindows();
     
     if (result.success) {
       showToast('Git 安装成功', 'success');
@@ -488,31 +429,6 @@ async function installGit() {
   } catch (error) {
     showToast('Git 安装失败: ' + error.message, 'error');
     addLog('Git 安装失败: ' + error.message, 'error');
-  } finally {
-    hideLoading();
-  }
-}
-
-/**
- * 安装 Homebrew
- */
-async function installHomebrew() {
-  showLoading('正在安装 Homebrew...');
-  addLog('开始安装 Homebrew...', 'info');
-  
-  try {
-    const result = await window.electronAPI.installHomebrew();
-    
-    if (result.success) {
-      showToast('Homebrew 安装成功', 'success');
-      addLog('Homebrew 安装完成', 'success');
-      await refreshAllStatus();
-    } else {
-      throw new Error(result.error || '安装失败');
-    }
-  } catch (error) {
-    showToast('Homebrew 安装失败: ' + error.message, 'error');
-    addLog('Homebrew 安装失败: ' + error.message, 'error');
   } finally {
     hideLoading();
   }
@@ -1090,7 +1006,6 @@ OpenClaw 部署助手使用指南：
 常见问题：
 • 如果安装失败，请检查网络连接
 • Windows 需要管理员权限
-• macOS 建议先安装 Homebrew
 • 所有下载均使用国内镜像加速
   `;
   
