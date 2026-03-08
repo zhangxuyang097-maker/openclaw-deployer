@@ -210,8 +210,7 @@ function bindEvents() {
   window.electronAPI.onDownloadProgress((data) => {
     const downloadedMB = (data.downloaded / 1024 / 1024).toFixed(2);
     const totalMB = (data.total / 1024 / 1024).toFixed(2);
-    const percent = Math.round(data.progress);
-    const progressText = `正在下载 OpenClaw... ${percent}%`;
+    const progressText = `正在下载 OpenClaw... ${data.progress}%`;
     const detail = `已下载: ${downloadedMB} MB / ${totalMB} MB`;
     updateProgress(data.progress, progressText, '', detail);
   });
@@ -514,7 +513,6 @@ async function installOpenClaw() {
     return;
   }
   
-  showLoading('正在安装 OpenClaw...');
   addLog('开始安装 OpenClaw...', 'info');
   addLog('将执行以下步骤：下载源码 → 安装依赖 → 构建项目 → 初始化配置', 'info');
   
