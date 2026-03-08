@@ -50,44 +50,65 @@ openclaw-deployer/
 │   ├── install-nodejs-win.ps1   # Windows Node.js 安装
 │   └── install-git-win.ps1      # Windows Git 安装
 ├── assets/                  # 图标资源
+├── start.bat                # Windows 启动脚本
+├── start.ps1                # PowerShell 启动脚本
 ├── package.json             # 项目配置
 └── README.md                # 说明文档
 ```
 
 ## 下载安装
 
-### 方式一：直接下载（推荐）
-
-前往 [Releases](https://github.com/zhangxuyang097-maker/openclaw-deployer/releases) 页面下载最新版本。
-
-### 方式二：自行构建
+### 方式一：从源码运行（推荐）
 
 #### 环境要求
 
 - **Node.js**: >= 18.0.0
 - **npm**: >= 9.0.0
 
-#### 构建步骤
+#### 快速开始
 
 ```bash
-# 克隆项目
+# 1. 克隆项目
 git clone https://github.com/zhangxuyang097-maker/openclaw-deployer.git
 cd openclaw-deployer
 
-# 安装依赖
+# 2. 安装依赖
 npm install
 
-# 构建 Windows 版本
-npm run build
+# 3. 启动应用
+npm start
 ```
 
-构建输出目录: `release/`
+### 方式二：构建后运行
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/zhangxuyang097-maker/openclaw-deployer.git
+cd openclaw-deployer
+
+# 2. 安装依赖
+npm install
+
+# 3. 构建应用
+npm run build
+
+# 4. 使用启动脚本运行
+# 方式 A: 双击 start.bat
+# 方式 B: 右键 start.ps1 -> 使用 PowerShell 运行
+# 方式 C: 直接运行 release/win-unpacked/OpenClaw 部署助手.exe
+```
 
 ## 使用指南
 
 ### 1. 启动软件
 
-双击运行 `OpenClaw 部署助手.exe`
+```bash
+# 开发模式
+npm start
+
+# 或使用启动脚本（需先构建）
+start.bat
+```
 
 ### 2. 环境检测
 
@@ -184,6 +205,28 @@ A: 请检查：
 1. OpenClaw 是否已正确安装
 2. 端口 18789 是否被占用
 3. 配置文件是否正确
+
+### Q: 构建失败？
+A: 请确保：
+1. Node.js 版本 >= 18
+2. 已正确安装所有依赖 (`npm install`)
+3. 网络连接正常
+
+## 开发命令
+
+```bash
+# 安装依赖
+npm install
+
+# 开发模式启动
+npm start
+
+# 构建 Windows 版本
+npm run build
+
+# 构建后使用启动脚本运行
+start.bat
+```
 
 ## 贡献指南
 
