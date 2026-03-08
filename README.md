@@ -157,11 +157,13 @@ start.bat
 
 ### 4. ClawX 支持
 
-- ⬇️ 一键下载 ClawX 源码
+- ⬇️ 一键下载 ClawX 源码（使用 git clone）
 - 🔗 快速访问 ClawX 文档
 - 🗑️ 一键删除 ClawX
 
-ClawX 是另一个小龙虾 AI 项目，可单独克隆使用：
+ClawX 是另一个小龙虾 AI 项目，软件会自动使用 git clone 下载到用户目录。
+
+也可以手动克隆：
 ```bash
 git clone https://github.com/ValueCell-ai/ClawX.git
 ```
